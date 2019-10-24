@@ -5,12 +5,14 @@ options = webdriver.ChromeOptions()
 options.add_argument('headless')
 
 # Access WSJ Pages
-driver = webdriver.Chrome('/Users/sangphilkim/Chromedriver', options=options)
+driver = webdriver.Chrome('/Users/sangphilkim/Chromedriver/chromedriver', options=options)
 driver.get("https://www.wsj.com/market-data/bonds")
 
 # Get Treasury Table
-path = '//*[@id="root"]/div/div/div/div[2]/div[4]/div[1]/div[2]/div[1]/div'
+path = '//*[@id="root"]/div/div/div/div[2]/div[4]/div[1]/div[2]/div[1]/div/table/tbody'
 table = driver.find_element_by_xpath(path)
+
+#print(table.text)
 
 # Convert Data to DataFrame
 rows = table.text.split('\n')
