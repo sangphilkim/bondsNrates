@@ -10,7 +10,7 @@ yields = []
 coupons = []
 
 for tenor in tenors:
-    req = requests.get("heeps://quotes.wsj.com/bond/BX/TMUBMUSD" + tenor + "?mod=md_bond_overview_quote")
+    req = requests.get("https://quotes.wsj.com/bond/BX/TMUBMUSD" + tenor + "?mod=md_bond_overview_quote")
 
     html = req.text
     soup = BeautifulSoup(html, 'html.parser')
