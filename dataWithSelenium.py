@@ -9,7 +9,7 @@ driver = webdriver.Chrome('/Users/sangphilkim/Chromedriver/chromedriver', option
 driver.get("https://www.wsj.com/market-data/bonds")
 
 # Get Treasury Table
-path = '//*[@id="root"]/div/div/div/div[2]/div[4]/div[1]/div[2]/div[1]/div/table/tbody'
+path = '//*[@id="root"]/div/div/div/div[2]/div[3]/div/div[3]/div[1]/div/table/tbody'
 table = driver.find_element_by_xpath(path)
 
 #print(table.text)
