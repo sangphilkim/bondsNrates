@@ -20,7 +20,7 @@ element = []
 for r in rows:
     element.append([i for i in r.split(' ')])
 df = pd.DataFrame(element)
-headers = ['Maturity', 'Type', 'Coupon', 'Price Chg', 'Yield', 'Yield Chg']
+headers = ['Maturity', 'Type', 'Coupon', 'Price_Chg', 'Yield', 'Yield_Chg']
 df.columns = headers
 df.iloc[:] = df.iloc[::-1].values
 
