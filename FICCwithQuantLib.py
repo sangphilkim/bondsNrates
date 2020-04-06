@@ -2,21 +2,29 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
-import requests
 from bs4 import BeautifulSoup
+from selenium import webdriver
 import QuantLib as ql
 
+options = webdriver.ChromeOptions()
+options.add_argument('headless')
+
+
 def GET_DATE():
-    req = requests.get("https://www.wsj.com/market-data/bonds")
-    html = req.text
+    driver = webdriver.Chrome('C:\chromedriver', options=options)
+    driver.get("https://www.wsj.com/market-data/bonds")
+    html = driver.page_source
     soup = BeautifulSoup(html, 'html.parser')
     data = soup.find("span", class_="WSJBase--card__timestamp--2xDXNOQk")
     date = data.text
-    date = datetime.datetime.strftime(date, "%m/%d/%y").date()
+    date = date.split(' ')[3]
+    date = datetime.datetime.strptime(date, "%m/%d/%y").date()
     return date
 
+
 def GET_QUOTE(reference_date):
-    tenors = ['01M', '03M', '06M', '01Y', '02Y','03Y','05Y','07Y','10Y','30Y']
+    driver = webdriver.Chrome('C:\chromedriver', options=options)
+    tenors = ['01M', '03M', '06M', '01Y', '02Y', '03Y', '05Y', '07Y', '10Y', '30Y']
 
     # Create Empty Lists
     maturities = []
@@ -26,8 +34,8 @@ def GET_QUOTE(reference_date):
 
     # Get Market Information
     for i, tenor in enumerate(tenors):
-        req = requests.get("https//quotes.wsj.com/bond/BX/TMUBMUSD" + tenor + "?mod=md_bond_overview_quote")
-        html = req.text
+        driver.get("https://quotes.wsj.com/bond/BX/TMUBMUSD" + tenor + "?mod=md_bond_overview_quote")
+        html = driver.page_source
         soup = BeautifulSoup(html, 'html.parser')
 
         # Price
@@ -43,7 +51,7 @@ def GET_QUOTE(reference_date):
             price = price[1].split('/')
             price2 = float(price[0])
             price3 = float(price[1])
-            price = price + (price2 / price3)
+            price = price1 + (price2 / price3)
 
         data_src2 = soup.find_all("span", class_="data_data")
 
@@ -56,7 +64,7 @@ def GET_QUOTE(reference_date):
 
         # Maturity Date
         maturity = data_src2[3].text
-        maturity = datetime.datetime.strftime(maturity, '%m/%d/%y').date()
+        maturity = datetime.datetime.strptime(maturity, '%m/%d/%y').date()
 
         # Send to Lists
         days.append((maturity - reference_date).days)
@@ -72,14 +80,9 @@ def GET_QUOTE(reference_date):
 
     return df
 
-    # Test
-    ref_date = GET_DATE()
-    quote = GET_QUOTE(ref_date)
-    print(quote)
 
 def TREASURY_CURVE(date, quote):
-
-    #Divide Quotes
+    # Divide Quotes
     tbill = quote[0:4]
     tbond = quote[4:]
 
@@ -91,13 +94,13 @@ def TREASURY_CURVE(date, quote):
     calendar = ql.UnitedStates()
     convention = ql.ModifiedFollowing
     day_counter = ql.ActualActual()
-    end_of_month = True
+    end_of_month = False
     fixing_days = 1
     face_amount = 100
     coupon_frequency = ql.Period(ql.Semiannual)
 
     # Construct Treasury Bill Helpers
-    bill_helpers = [ql.DepositRateHelper(ql.QuoteHandle(ql.SimpleQuote(r/100.0)),
+    bill_helpers = [ql.DepositRateHelper(ql.QuoteHandle(ql.SimpleQuote(r / 100.0)),
                                          ql.Period(m, ql.Days),
                                          fixing_days,
                                          calendar,
@@ -119,25 +122,27 @@ def TREASURY_CURVE(date, quote):
                                ql.DateGeneration.Backward,
                                end_of_month)
         bond_helper = ql.FixedRateBondHelper(ql.QuoteHandle(ql.SimpleQuote(p)),
-                                              fixing_days,
-                                              face_amount,
-                                              schedule,
-                                              [c/100.0],
-                                              day_counter,
-                                              convention)
+                                             fixing_days,
+                                             face_amount,
+                                             schedule,
+                                             [c / 100.0],
+                                             day_counter,
+                                             convention)
         bond_helpers.append(bond_helper)
 
     # Bind Helpers
     rate_helper = bill_helpers + bond_helpers
 
     # Build Curve
-    yc_linearzero = ql.PricewiseLinearZero(eval_date, rate_helper, day_counter)
+    yc_linearzero = ql.PiecewiseLinearZero(eval_date, rate_helper, day_counter)
 
     return yc_linearzero
+
 
 def DISCOUNT_FACTOR(date, curve):
     date = ql.Date(date.day, date.month, date.year)
     return curve.discount(date)
+
 
 def ZERO_RATE(date, curve):
     date = ql.Date(date.day, date.month, date.year)
@@ -147,27 +152,29 @@ def ZERO_RATE(date, curve):
     zero_rate = curve.zeroRate(date, day_counter, compounding, freq).rate()
     return zero_rate
 
-ref_date = GET_DATE()
-quote = GET_QUOTE(ref_date)
-curve = TREASURY_CURVE(ref_date, quote)
 
-quote['discount factor'] = np.nan
-quote['zero rate'] = np.nan
+if __name__ == "__main__":
+    ref_date = GET_DATE()
+    quote = GET_QUOTE(ref_date)
+    curve = TREASURY_CURVE(ref_date, quote)
 
-for date in quote.index:
-    quote.loc[date, 'discount factor'] = DISCOUNT_FACTOR(date, curve)
-    quote.loc[date, 'zero rate'] = ZERO_RATE(date, curve)
+    quote['discount factor'] = np.nan
+    quote['zero rate'] = np.nan
 
-print(quote[['discount factor', 'zero rate']])
+    for date in quote.index:
+        quote.loc[date, 'discount factor'] = DISCOUNT_FACTOR(date, curve)
+        quote.loc[date, 'zero rate'] = ZERO_RATE(date, curve)
 
-plt.figure(figsize=(16, 8))
-plt.plot(quote['zero rate'], 'b.-')
-plt.title('Zero Curve', loc='center')
-plt.xlabel('Maturity')
-plt.ylabel('Zero Rate')
+    print(quote[['discount factor', 'zero rate']])
 
-plt.figure(figsize=(16, 8))
-plt.plot(quote['discount factor'], 'r.-')
-plt.title('Discount Curve', loc='center')
-plt.xlabel('Maturity')
-plt.ylabel('Discount Factor')
+    plt.figure(figsize=(16, 8))
+    plt.plot(quote['zero rate'], 'b.-')
+    plt.title('Zero Curve', loc='center')
+    plt.xlabel('Maturity')
+    plt.ylabel('Zero Rate')
+
+    plt.figure(figsize=(16, 8))
+    plt.plot(quote['discount factor'], 'r.-')
+    plt.title('Discount Curve', loc='center')
+    plt.xlabel('Maturity')
+    plt.ylabel('Discount Factor')
