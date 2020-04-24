@@ -136,3 +136,41 @@ ref_date = ql.Date(4, 10, 2021)
 # Functions
 print("Next Payment Date from {} : {}".format(ref_date, schedule.nextDate(ref_date)))
 print("Previous Payment Date from {} : {}".format(ref_date, schedule.previousDate(ref_date)))
+
+# Components -- session 6
+quote = ql.SimpleQuote(2767.88)
+
+# Functions
+print(quote.value())
+
+quote.setValue(2800.00)
+print(quote.value())
+
+# Componets -- session 7
+rate = 0.0148
+dc = ql.ActualActual()
+comp = ql.Compounded
+freq = ql.Annual
+
+# Construction
+ir = ql.InterestRate(rate, dc, comp, freq)
+
+# Discount & Compound Factor
+start_date = ql.Date(19, 4, 2020)
+end_date = ql.Date(19, 4, 2021)
+
+# print("Discount Factor between {} and {} = {}".format(start_date, end_date, round(ir.discountFactor(t), 4)))
+# print("Compounding Factor between {} and {} = {}".format(start_date, end_date, round(ir.compoundFactor(t), 4)))
+
+# Equivalent Rate
+new_dc = ql.ActualActual()
+new_comp = ql.Compounded
+new_freq = ql.Quarterly
+print("Equivalent Rate = {}".format(ir.equivalentRate(new_dc, new_comp, new_freq, start_date, end_date)))
+
+# Implied Rate
+comp_factor = 1.05
+new_dc = ql.ActualActual()
+new_comp = ql.Compounded
+new_freq = ql.Annual
+print("Implied Rate = {}".format(ir.impliedRate(comp_factor, new_dc, new_comp, new_freq, start_date, end_date)))
