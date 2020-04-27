@@ -174,3 +174,19 @@ new_dc = ql.ActualActual()
 new_comp = ql.Compounded
 new_freq = ql.Annual
 print("Implied Rate = {}".format(ir.impliedRate(comp_factor, new_dc, new_comp, new_freq, start_date, end_date)))
+
+# Components -- session 8
+name = "USD_3M_Libor"
+tenor8 = ql.Period(ql.Quarterly)
+settlementDays = 2
+currency = ql.USDCurrency()
+calendar8 = ql.UnitedStates()
+#convention = ql.ModifiedFollowing
+endOfMonth8 = False
+dayCounter = ql.Actual360()
+
+# Construction
+usd_3m_libor = ql.IborIndex(name, tenor8, settlementDays, currency, calendar8, convention, endOfMonth8, dayCounter)
+
+usd_3m_libor.addFixing(ql.Date(27, 4, 2020), 0.0135)
+usd_3m_libor.clearFixings()
